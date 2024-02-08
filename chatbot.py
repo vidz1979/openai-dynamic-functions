@@ -15,67 +15,79 @@ class ChatBot:
         verbose: bool = False,
         extra_info: dict[str, Any] = None,
     ):
-        if history and prompt:
-            raise ValueError("prompt and history cannot be used together")
         self.func_definitions = [functions[function_name]["definition"] for function_name in functions]
+        self.tools_defs = [
+            {"type": "function", "function": functions[function_name]["definition"]} for function_name in functions
+        ]
         self.functions = {function_name: function["function"] for function_name, function in functions.items()}
-        self.messages = [{"role": "system", "content": prompt}] if prompt else []
-        self.messages += history if history else []
+        self.prompt = {"role": "system", "content": prompt}
+        self.messages: list[dict] = history if history else []
         self.model = model
         self.verbose = verbose
         self.extra_info = extra_info
 
     def chat(self, query):
-        if self.verbose:
-            print("user query:", query)
-        self.messages += [{"role": "user", "content": query}]
+        self.append_message({"role": "user", "content": query})
         return self.make_openai_request()
 
     def make_openai_request(self) -> str | None:
         response = openai.chat.completions.create(
             model=self.model,
-            messages=self.messages,
-            functions=self.func_definitions,
+            messages=[self.prompt, *self.messages] if self.prompt else self.messages,
+            tools=self.tools_defs,
         )
-        message = response.choices[0].message
+        assistant_message = response.choices[0].message
 
-        # If the message is a function call, call the function and make another request
-        if message.function_call:
-            function_name = message.function_call.name
-            arguments = json.loads(message.function_call.arguments)
-            if self.verbose:
-                print("function call, name: ", function_name, ", Arguments: ", arguments)
+        # Append the plain assistant message to the messages list
+        self.append_message(assistant_message.model_dump(exclude_none=True))
 
-            # If the function has extra_info as an argument, add it to the function call
-            if "extra_info" in inspect.getfullargspec(self.functions[function_name]).args and self.extra_info:
-                arguments["extra_info"] = self.extra_info
-            function_response = self.functions[function_name](**arguments)
-
-            # If the function returns a tuple, the second element is extra_info
-            if type(function_response) == tuple:
-                function_response, extra_info = function_response
-                if extra_info:
-                    if self.extra_info:
-                        self.extra_info.update(extra_info)
-                    else:
-                        self.extra_info = extra_info
-
-            if self.verbose:
-                print("function response:", function_response)
-                if self.extra_info:
-                    print("extra_info:", self.extra_info)
-
-            # Add the function response to the messages and make another request
-            self.messages += [
-                {
-                    "role": "function",
-                    "name": function_name,
-                    "content": function_response,
-                }
-            ]
+        # If the assistant message contains tool calls, call the tools and make another request
+        if assistant_message.tool_calls and len(assistant_message.tool_calls) > 0:
+            for tool_call in assistant_message.tool_calls:
+                if tool_call.type == "function":
+                    self.append_message(
+                        {
+                            "role": "tool",
+                            "content": self.make_function_call(tool_call.function),
+                            "tool_call_id": tool_call.id,
+                        }
+                    )
+                else:
+                    raise ValueError("Unknown tool call type")
+            # Make another request with the function response
             return self.make_openai_request()
         else:
-            # Final message from the AI
-            if self.verbose:
-                print("AI response:", message.content)
-            return message.content
+            # Message from AI is final, return the content
+            return assistant_message.content
+
+    def append_message(self, message):
+        if self.verbose:
+            print(
+                message["role"] + ":",
+                ("'" + message["content"] + "'") if "content" in message else "",
+                ", ".join([f"{k}={v}" for k, v in message.items() if k not in ["role", "content"]]),
+            )
+        self.messages.append(message)
+
+    def make_function_call(self, function_call):
+        function_name = function_call.name
+        arguments = json.loads(function_call.arguments)
+
+        # If the function has extra_info as an argument, add it to the function call
+        if "extra_info" in inspect.getfullargspec(self.functions[function_name]).args and self.extra_info:
+            arguments["extra_info"] = self.extra_info
+        function_response = self.functions[function_name](**arguments)
+
+        # If the function returns a tuple, the second element is extra_info
+        if type(function_response) == tuple:
+            function_response, extra_info = function_response
+            if extra_info:
+                if self.extra_info:
+                    self.extra_info.update(extra_info)
+                else:
+                    self.extra_info = extra_info
+
+        if self.verbose and self.extra_info:
+            print("extra_info:", self.extra_info)
+
+        return function_response
