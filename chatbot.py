@@ -43,6 +43,7 @@ class ChatBot:
 
         # If the assistant message contains tool calls, call the tools and make another request
         if assistant_message.tool_calls and len(assistant_message.tool_calls) > 0:
+            # TODO parallel calls
             for tool_call in assistant_message.tool_calls:
                 if tool_call.type == "function":
                     self.append_message(
