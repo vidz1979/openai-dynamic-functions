@@ -22,6 +22,7 @@ python main.py
 ```
 user query: I want to order one pizza Margherita to 124 Fakestreet
 function call, name:  place_order , Arguments:  {'pizza_name': 'Margherita', 'quantity': 1, 'address': '124 Fakestreet'}
+extra_info: {'last_order_id': 1, 'total_orders': 12.0, 'customer_address': '124 Fakestreet'}
 function response: Order placed successfully! Your order ID is 1. Total price is $12.0.
 AI response: Your pizza Margherita has been ordered. The total value of your order is $12.0, and the ID of your order is 1.
 ```
@@ -29,7 +30,6 @@ AI response: Your pizza Margherita has been ordered. The total value of your ord
 Order is placed correctly:
 
 ```
-extra_info: {'last_order_id': 1, 'total_orders': 12.0, 'customer_address': '124 Fakestreet'}
 orders: [{'order_id': 1, 'pizza_name': 'Margherita', 'quantity': 1, 'address': '124 Fakestreet', 'total_price': 12.0}]
 ```
 
@@ -38,8 +38,10 @@ orders: [{'order_id': 1, 'pizza_name': 'Margherita', 'quantity': 1, 'address': '
 ```
 user query: Please cancel this order and I want to order two pizza hawaii
 function call, name:  cancel_order , Arguments:  {'order_id': 1}
+extra_info: {'last_order_id': None, 'total_orders': 12.0, 'customer_address': '124 Fakestreet'}
 function response: Order 1 has been canceled.
 function call, name:  place_order , Arguments:  {'pizza_name': 'Hawaii', 'quantity': 2, 'address': '124 Fakestreet'}
+extra_info: {'last_order_id': 2, 'total_orders': 30.0, 'customer_address': '124 Fakestreet'}
 function response: Order placed successfully! Your order ID is 2. Total price is $30.0.
 AI response: Your order for two Hawaiian pizzas has been placed successfully. The total value of your order is $30.00, and your order ID is 2.
 ```
@@ -47,7 +49,5 @@ AI response: Your order for two Hawaiian pizzas has been placed successfully. Th
 Two functions were called successfully: cancel_order and place_order
 
 ```
-extra_info: {'last_order_id': None, 'total_orders': 12.0, 'customer_address': '124 Fakestreet'}
-extra_info: {'last_order_id': 2, 'total_orders': 30.0, 'customer_address': '124 Fakestreet'}
 orders: [{'order_id': 2, 'pizza_name': 'Hawaii', 'quantity': 2, 'address': '124 Fakestreet', 'total_price': 30.0}]
 ```
