@@ -18,8 +18,11 @@ bot = ChatBot(
 
 query = "I want to order one pizza Margherita to 124 Fakestreet"
 response = bot.chat(query)
-print("orders:", database["orders"])
+print("")
+print("orders after 1st query :", database["orders"])
+print("")
 
 query = "Please cancel this order and I want to order two pizza hawaii"
 response = bot.chat(query)
-print("orders:", database["orders"])
+print("")
+print("orders after 2nd query:", database["orders"])
