@@ -1,3 +1,6 @@
+from typing import Any
+
+
 database = {
     "pizzas": {"Hawaii": {"name": "Hawaii", "price": 15.0}, "Margherita": {"name": "Margherita", "price": 12.0}},
     "orders": [],
@@ -5,7 +8,7 @@ database = {
 }
 
 
-def place_order(pizza_name, quantity, address):
+def place_order(pizza_name, quantity, address, extra_info: dict[str, Any] = None):
     if pizza_name not in database["pizzas"]:
         return f"We don't have {pizza_name} pizza!"
 
@@ -25,7 +28,18 @@ def place_order(pizza_name, quantity, address):
 
     database["orders"].append(order)
 
-    return f"Order placed successfully! Your order ID is {order_id}. Total price is ${order['total_price']}."
+    if not extra_info:
+        extra_info = {}
+    extra_info["last_order_id"] = order_id
+    if not "total_orders" in extra_info:
+        extra_info["total_orders"] = 0
+    extra_info["total_orders"] = extra_info["total_orders"] + order["total_price"]
+    extra_info["customer_address"] = address
+
+    return (
+        f"Order placed successfully! Your order ID is {order_id}. Total price is ${order['total_price']}.",
+        extra_info,
+    )
 
 
 def get_pizza_info(pizza_name):
@@ -36,11 +50,18 @@ def get_pizza_info(pizza_name):
         return f"We don't have information about {pizza_name} pizza."
 
 
-def cancel_order(order_id):
+def cancel_order(order_id, extra_info: dict[str, Any] = None):
     for order in database["orders"]:
         if order["order_id"] == order_id:
+            if not extra_info:
+                extra_info = {}
+            extra_info["last_order_id"] = None
+            if "total_orders" in extra_info:
+                extra_info["total_orders"] = extra_info["total_orders"] - order["total_price"]
+
             database["orders"].remove(order)
-            return f"Order {order_id} has been canceled."
+            return (f"Order {order_id} has been canceled.", extra_info)
+
     return f"Order {order_id} not found."
 
 

@@ -12,6 +12,8 @@ bot = ChatBot(
     prompt="You are a pizza restaurant chatbot. If a customer order a pizza, always inform total value and ID of the order.",
     functions=functions,
     verbose=True,
+    # extra_info is a dictionary that can be used to store information across function calls
+    extra_info={"total_orders": 0},
 )
 
 query = "I want to order one pizza Margherita to 124 Fakestreet"
